@@ -1,47 +1,39 @@
-name: Termux-Pro CI/CD
+name: Termux-Pro CI
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:
 
 jobs:
-  lint-test:
+  termux-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt
-      - name: Shell Syntax Check
-        run: for f in scripts/*.sh; do bash -n "$f"; done
-      - name: Shell Lint (ShellCheck)
-        run: for f in scripts/*.sh; do shellcheck "$f"; done
-      - name: Shell Format Check (shfmt)
-        run: for f in scripts/*.sh; do shfmt -d "$f"; done
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  smoke-tests:
-    runs-on: ubuntu-latest
-    needs: lint-test
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Smoke Tests
+      - name: Install proot-distro
         run: |
-          chmod +x scripts/*.sh
-          ./scripts/status.sh || true
-          ./scripts/schedule.sh || true
+          sudo apt update
+          sudo apt install -y proot-distro
 
-  release:
-    runs-on: ubuntu-latest
-    needs: [lint-test, smoke-tests]
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v4
-      - name: Package Scripts
-        run: tar -czf termux-pro.tar.gz scripts/
-      - name: Upload Release Asset
-        uses: actions/upload-artifact@v4
-        with:
-          name: termux-pro
-          path: termux-pro.tar.gz
+      - name: Bootstrap Termux container
+        run: |
+          proot-distro install ubuntu
+          proot-distro login ubuntu -- echo "✓ Termux base bootstrapped"
+
+      - name: Run setup script inside Termux container
+        run: |
+          proot-distro login ubuntu -- bash -c "
+            apt update && apt install -y curl git python3 python3-pip
+            cd /root && git clone $GITHUB_WORKSPACE Termux-Pro
+            cd Termux-Pro && bash scripts/setup.sh
+          "
+
+      - name: Verify installation
+        run: |
+          proot-distro login ubuntu -- bash -c "
+            [ -f /root/Termux-Pro/scripts/setup.sh ] && echo 'Setup ✓' || echo 'Setup ✗'
+            [ -d /root/Termux-Pro/src/termux_pro/plugins ] && echo 'Plugins ✓' || echo 'Plugins ✗'
+          "

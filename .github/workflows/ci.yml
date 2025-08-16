@@ -1,4 +1,4 @@
-name: Termux-Pro CI
+name: CI
 
 on:
   push:
@@ -7,33 +7,26 @@ on:
     branches: [ "main" ]
 
 jobs:
-  termux-build:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Install proot-distro
-        run: |
-          sudo apt update
-          sudo apt install -y proot-distro
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
-      - name: Bootstrap Termux container
-        run: |
-          proot-distro install ubuntu
-          proot-distro login ubuntu -- echo "✓ Termux base bootstrapped"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pytest flake8
 
-      - name: Run setup script inside Termux container
-        run: |
-          proot-distro login ubuntu -- bash -c "
-            apt update && apt install -y curl git python3 python3-pip
-            cd /root && git clone $GITHUB_WORKSPACE Termux-Pro
-            cd Termux-Pro && bash scripts/setup.sh
-          "
+    - name: Run tests
+      run: pytest -q
 
-      - name: Verify installation
-        run: |
-          proot-distro login ubuntu -- bash -c "
-            [ -f /root/Termux-Pro/scripts/setup.sh ] && echo 'Setup ✓' || echo 'Setup ✗'
-            [ -d /root/Termux-Pro/src/termux_pro/plugins ] && echo 'Plugins ✓' || echo 'Plugins ✗'
-          "
+    - name: Lint with flake8
+      run: flake8 src

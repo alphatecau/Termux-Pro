@@ -1,11 +1,3 @@
-__pycache__/
-*.pyc
-*.log
-*.tmp
-*.swp
-.DS_Store
 node_modules/
-backup_*
-*.tar.zst
-*.enc
 .env
+*.log

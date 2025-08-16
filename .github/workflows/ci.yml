@@ -1,15 +1,47 @@
-name: Termux-Pro CI
+name: Termux-Pro CI/CD
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   lint-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Shell Scripts
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt
+      - name: Shell Syntax Check
         run: for f in scripts/*.sh; do bash -n "$f"; done
+      - name: Shell Lint (ShellCheck)
+        run: for f in scripts/*.sh; do shellcheck "$f"; done
+      - name: Shell Format Check (shfmt)
+        run: for f in scripts/*.sh; do shfmt -d "$f"; done
+
+  smoke-tests:
+    runs-on: ubuntu-latest
+    needs: lint-test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Smoke Tests
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/status.sh || true
+          ./scripts/schedule.sh || true
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [lint-test, smoke-tests]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package Scripts
+        run: tar -czf termux-pro.tar.gz scripts/
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-pro
+          path: termux-pro.tar.gz

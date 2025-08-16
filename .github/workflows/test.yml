@@ -1,0 +1,11 @@
+name: Termux CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run setup script
+      run: bash termux-setup.sh

@@ -1,0 +1,10 @@
+logs/
+tmp/
+*.log*
+backups/
+models/
+*.gguf
+cloud/mnt/
+cloud/cache/
+ubuntu/*
+ssh/

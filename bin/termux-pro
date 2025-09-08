@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "Termux-Pro Control Panel"
+echo "Run: tp-health, tp-update, tp-config"

@@ -45,7 +45,8 @@ Installation
 
 Fully automated one-liner:
 
-pkg update -y && pkg upgrade -y && pkg install -y git wget curl nano unzip proot && git config --global user.name "alphatecau" && git config --global user.email "alpha.tec.au86@gmail.com" && rm -rf Termux-Pro && git clone https://github.com/alphatecau/Termux-Pro && cd Termux-Pro && bash install.sh && echo -e "alias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'\nalias gs='git status'\nalias gp='git pull'\nalias gc='git commit'\nexport TERMUX_AI_HOOK=1\nexport PATH=$HOME/Termux-Pro/modules:$PATH" >> ~/.bashrc && chmod 700 ~/.bashrc && source ~/.bashrc && echo 'ulimit -n 65535' >> ~/.profile && echo 'umask 027' >> ~/.profile && source ~/.profile
+pkg update -y && pkg upgrade -y && pkg install -y git wget curl nano unzip proot && rm -rf "$HOME/Termux-Pro" && git clone https://github.com/alphatecau/Termux-Pro.git "$HOME/Termux-Pro" && echo -e "\n\n# Custom Aliases by Termux-Pro\nalias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'\nalias gs='git status'\nalias gp='git pull'\nalias gc='git commit'\n\n# Termux-Pro Settings\nexport TERMUX_AI_HOOK=1\nexport PATH=\"\$HOME/Termux-Pro/modules:\$PATH\"" >> "$HOME/.bashrc" && chmod 700 "$HOME/.bashrc" && echo -e "\nulimit -n 65535\numask 027" >> "$HOME/.profile" && echo "✅ Safe setup complete! Please configure Git and review 'install.sh' manually."
+
 
 Steps:
 

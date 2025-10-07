@@ -1,3 +1,7 @@
+Termux-Pro
+
+> Advanced Automation and Productivity Suite for Termux Users
+Built for maximum performance, security, and total control in Android’s UNIX environment.
 
 
 ---

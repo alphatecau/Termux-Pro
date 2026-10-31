@@ -50,7 +50,12 @@ health() {
             failures=$((failures + 1))
         fi
     done
-    if "$PREFIX/bin/bash" -euc 'source "$PREFIX/lib/termux-pro/lifecycle.sh"; tp_paths; tp_check_ownership uninstall'; then
+    if (
+        # shellcheck source=lib/lifecycle.sh
+        source "$PREFIX/lib/termux-pro/lifecycle.sh" || exit 1
+        tp_paths
+        tp_check_ownership uninstall
+    ); then
         printf '[OK] managed file integrity\n'
     else
         printf '[FAIL] installation receipt or managed file integrity\n'

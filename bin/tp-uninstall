@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Termux-Pro managed command.
+set -Eeuo pipefail
+if (($#)); then
+    printf 'Usage: tp-uninstall\n' >&2
+    exit 2
+fi
+[[ -n ${PREFIX:-} && $PREFIX == /* ]] || { printf '[TP] Run this command in Termux.\n' >&2; exit 1; }
+# shellcheck source=lib/lifecycle.sh
+source "$PREFIX/lib/termux-pro/lifecycle.sh"
+tp_paths
+tp_acquire
+tp_check_ownership uninstall
+TP_STAGE='backing up commands before uninstall'
+tp_backup
+TP_STAGE='removing managed files'
+tp_phase applying
+for target in "${TP_TARGETS[@]}"; do rm -f -- "$target"; done
+tp_phase committed
+# Remove only empty managed directories; preserve any personal files there.
+rmdir -- "$TP_STATE" "$PREFIX/lib/termux-pro" 2>/dev/null || true
+printf '[TP] Uninstall complete. Your checkout, packages and personal settings are preserved.\n'

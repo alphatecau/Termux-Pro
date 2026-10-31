@@ -3,9 +3,8 @@ set -Eeuo pipefail
 
 usage() {
     printf 'Usage: bash install.sh [--skip-packages]\n'
-    printf 'Install Termux-Pro commands; --skip-packages uses existing dependencies.\n'
+    printf 'Install Termux-Pro commands with rollback; --skip-packages uses existing dependencies.\n'
 }
-
 skip_packages=0
 while (($#)); do
     case "$1" in
@@ -15,70 +14,49 @@ while (($#)); do
     esac
     shift
 done
-
-fail() { printf '[TP] ERROR: %s\n' "$*" >&2; exit 1; }
-stage=preflight
-temporary_file=''
-trap 'status=$?; printf "[TP] ERROR: %s failed (exit %s).\n" "$stage" "$status" >&2; exit "$status"' ERR
-trap 'if [[ -n $temporary_file ]]; then rm -f -- "$temporary_file"; fi' EXIT
-
-[[ -n ${HOME:-} && $HOME == /* ]] || fail 'HOME must be an absolute directory.'
-[[ -n ${PREFIX:-} && $PREFIX == /* && $PREFIX != *[[:space:]]* ]] ||
-    fail 'Run this installer inside Termux with its absolute PREFIX set (no whitespace).'
-[[ -x $PREFIX/bin/bash ]] || fail 'The Termux Bash interpreter is missing.'
-command -v pkg >/dev/null 2>&1 || fail 'The Termux pkg command is missing.'
-
 repository=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-[[ $repository != *$'\n'* ]] || fail 'The repository path must not contain a newline.'
-commands=(termux-pro tp tp-health tp-config tp-update)
-
-# Validate every source and destination before changing packages or commands.
-for name in "${commands[@]}"; do
-    source_file="$repository/bin/$name"
-    target="$PREFIX/bin/$name"
-    [[ -f $source_file ]] || fail "Missing source: $source_file"
-    bash -n "$source_file"
-    if [[ -e $target || -L $target ]]; then
-        [[ ! -d $target ]] || fail "Destination is a directory: $target"
-        if [[ -L $target ]]; then
-            [[ $(readlink -- "$target") == "$source_file" ]] ||
-                fail "Refusing to replace an unrelated link: $target"
-        else
-            grep -qxF '# Termux-Pro managed command.' "$target" ||
-                cmp -s "$source_file" "$target" ||
-                fail "Refusing to replace an unrelated command: $target"
-        fi
-    fi
+[[ $repository != *$'\n'* ]] || { printf '[TP] Invalid checkout path.\n' >&2; exit 1; }
+# shellcheck source=lib/lifecycle.sh
+source "$repository/lib/lifecycle.sh"
+tp_paths
+command -v pkg >/dev/null 2>&1 || tp_fail 'The Termux pkg command is missing.'
+for name in "${TP_COMMANDS[@]}"; do
+    [[ -f $repository/bin/$name ]] || tp_fail "Missing source: $repository/bin/$name"
+    bash -n "$repository/bin/$name"
 done
-
+bash -n "$repository/lib/lifecycle.sh"
+tp_acquire
+tp_check_ownership install
 if ((skip_packages == 0)); then
-    stage='package index refresh; check connectivity or run termux-change-repo'
+    TP_STAGE='package index refresh; check connectivity or run termux-change-repo'
     pkg update -y
-    stage='dependency installation'
+    TP_STAGE='dependency installation'
     pkg install -y git curl wget neovim
 fi
 for dependency in git curl wget nvim; do
-    command -v "$dependency" >/dev/null 2>&1 || fail "Missing dependency: $dependency"
+    command -v "$dependency" >/dev/null 2>&1 || tp_fail "Missing dependency: $dependency"
+    if ! "$dependency" --version > "$TP_TRANSACTION/$dependency.version" 2>&1; then
+        cat "$TP_TRANSACTION/$dependency.version" >&2
+        tp_fail "Dependency cannot execute: $dependency. Run pkg update && pkg upgrade, then retry. If pkg is broken on apt-based Termux, use apt update && apt full-upgrade."
+    fi
 done
-
-stage='command installation'
-umask 077
-for name in "${commands[@]}"; do
-    temporary_file=$(mktemp "$PREFIX/bin/.termux-pro.XXXXXX")
-    # Installed copies use the real interpreter; the checkout stays portable.
-    { printf '#!%s/bin/bash\n' "$PREFIX"; tail -n +2 "$repository/bin/$name"; } > "$temporary_file"
-    chmod 755 "$temporary_file"
-    mv -f -- "$temporary_file" "$PREFIX/bin/$name"
-    temporary_file=''
+TP_STAGE='staging commands and recovery backups'
+for index in "${!TP_COMMANDS[@]}"; do
+    { printf '#!%s/bin/bash\n' "$PREFIX"; tail -n +2 "$repository/bin/${TP_COMMANDS[$index]}"; } > "$TP_TRANSACTION/new/$index"
+    chmod 755 "$TP_TRANSACTION/new/$index"
+    bash -n "$TP_TRANSACTION/new/$index"
 done
-
-stage='repository registration'
-state_directory="$HOME/.config/termux-pro"
-mkdir -p -- "$state_directory"
-chmod 700 "$state_directory"
-temporary_file=$(mktemp "$state_directory/.repository.XXXXXX")
-printf '%s\n' "$repository" > "$temporary_file"
-chmod 600 "$temporary_file"
-mv -f -- "$temporary_file" "$state_directory/repository"
-temporary_file=''
+index=${#TP_COMMANDS[@]}
+cp -- "$repository/lib/lifecycle.sh" "$TP_TRANSACTION/new/$index"
+chmod 600 "$TP_TRANSACTION/new/$index"
+printf '%s\n' "$repository" > "$TP_TRANSACTION/new/$((index + 1))"
+printf '# Termux-Pro receipt v1\n' > "$TP_TRANSACTION/new/$TP_RECEIPT_INDEX"
+for ((index=0; index<TP_RECEIPT_INDEX; index++)); do
+    digest=$(tp_digest "$TP_TRANSACTION/new/$index")
+    printf '%s %s\n' "$index" "$digest" >> "$TP_TRANSACTION/new/$TP_RECEIPT_INDEX"
+done
+chmod 600 "$TP_TRANSACTION/new/$((TP_RECEIPT_INDEX - 1))" "$TP_TRANSACTION/new/$TP_RECEIPT_INDEX"
+tp_backup
+TP_STAGE='publishing commands'
+tp_publish
 printf '[TP] Installation complete. Run: tp health\n'

@@ -6,12 +6,13 @@ usage() {
     cat <<'HELP'
 Termux-Pro | development tools for Termux
 
-Usage: tp [help|health|config|update]
+Usage: tp [help|health|config|update|uninstall]
   health   Check dependencies, installed commands and repository registration.
   config   Display installation paths without reading credentials.
   update   Fast-forward the clean tracked checkout and refresh commands.
+  uninstall Remove unchanged managed files; preserve your checkout and packages.
 
-Shortcuts: tp-health, tp-config, tp-update
+Shortcuts: tp-health, tp-config, tp-update, tp-uninstall
 HELP
 }
 
@@ -34,14 +35,14 @@ load_repository() {
 health() {
     local failures=0 name
     for name in bash git curl wget nvim; do
-        if command -v "$name" >/dev/null 2>&1; then
+        if command -v "$name" >/dev/null 2>&1 && "$name" --version >/dev/null 2>&1; then
             printf '[OK] dependency: %s\n' "$name"
         else
-            printf '[FAIL] missing dependency: %s\n' "$name"
+            printf '[FAIL] missing dependency: %s (or unable to execute; check package upgrades)\n' "$name"
             failures=$((failures + 1))
         fi
     done
-    for name in termux-pro tp tp-health tp-config tp-update; do
+    for name in termux-pro tp tp-health tp-config tp-update tp-uninstall; do
         if [[ -x $PREFIX/bin/$name ]]; then
             printf '[OK] command: %s\n' "$name"
         else
@@ -49,6 +50,17 @@ health() {
             failures=$((failures + 1))
         fi
     done
+    if (
+        # shellcheck source=lib/lifecycle.sh
+        source "$PREFIX/lib/termux-pro/lifecycle.sh" || exit 1
+        tp_paths
+        tp_check_ownership uninstall
+    ); then
+        printf '[OK] managed file integrity\n'
+    else
+        printf '[FAIL] installation receipt or managed file integrity\n'
+        failures=$((failures + 1))
+    fi
     if load_repository; then
         printf '[OK] checkout: %s\n' "$repository"
     else
@@ -89,5 +101,6 @@ case "$command_name" in
     health) require_environment; health ;;
     config) require_environment; config ;;
     update) require_environment; update ;;
+    uninstall) require_environment; exec "$PREFIX/bin/tp-uninstall" ;;
     *) printf '[TP] Unknown command: %s\n' "$command_name" >&2; usage >&2; exit 2 ;;
 esac

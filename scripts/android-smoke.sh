@@ -9,7 +9,8 @@ cd -- "$repository"
 printf 'Android API: %s\nABI: %s\n' "$(/system/bin/getprop ro.build.version.sdk)" "$(/system/bin/getprop ro.product.cpu.abi)"
 # Termux is a rolling release: upgrade the disposable bootstrap before selecting packages.
 pkg update -y
-pkg upgrade -y
+# The pinned APK uses apt; accept package defaults only in this disposable environment.
+DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confnew dist-upgrade < /dev/null
 settings_before=''
 for name in .bashrc .profile .git-credentials; do
     if [[ -f $HOME/$name ]]; then settings_before+="$(sha256sum "$HOME/$name")"; fi

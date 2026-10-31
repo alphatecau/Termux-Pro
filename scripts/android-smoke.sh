@@ -6,11 +6,13 @@ set -Eeuo pipefail
 [[ ! -e $PREFIX/bin/termux-pro ]] || { printf 'Refusing to replace an existing toolkit during a smoke test.\n' >&2; exit 1; }
 repository=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 cd -- "$repository"
+# shellcheck source=scripts/package-retry.sh
+source "$repository/scripts/package-retry.sh"
 printf 'Android API: %s\nABI: %s\n' "$(/system/bin/getprop ro.build.version.sdk)" "$(/system/bin/getprop ro.product.cpu.abi)"
 # Termux is a rolling release: upgrade the disposable bootstrap before selecting packages.
-pkg update -y
+retry_package pkg update -y
 # The pinned APK uses apt; accept package defaults only in this disposable environment.
-DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confnew dist-upgrade < /dev/null
+DEBIAN_FRONTEND=noninteractive retry_package apt-get -y -o Dpkg::Options::=--force-confnew dist-upgrade < /dev/null
 settings_before=''
 for name in .bashrc .profile .git-credentials; do
     if [[ -f $HOME/$name ]]; then settings_before+="$(sha256sum "$HOME/$name")"; fi
@@ -23,7 +25,7 @@ git --version
 curl --version
 wget --version
 nvim --version
-pkg install -y python
+retry_package pkg install -y python
 python -m unittest discover -s tests -v
 # Exercise real Termux Git in a private copy; preserve the source checkout and its remotes.
 fixture_directory=$(mktemp -d)

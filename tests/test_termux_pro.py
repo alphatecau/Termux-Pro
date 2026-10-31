@@ -110,6 +110,38 @@ class TermuxProTests(unittest.TestCase):
         self.assertEqual(self.pkg_log.read_text().splitlines(),
                          ["update -y", "update -y", "install -y git curl wget neovim"])
 
+    def run_package_retry(self, failures):
+        self.write_command("sleep", 'printf "%s\\n" "$1" >> "$TP_TEST_RETRY_DELAYS"\n')
+        self.write_command("apt-get", '''
+attempt=0
+if [[ -f $TP_TEST_RETRY_COUNT ]]; then read -r attempt < "$TP_TEST_RETRY_COUNT"; fi
+attempt=$((attempt + 1))
+printf '%s\\n' "$attempt" > "$TP_TEST_RETRY_COUNT"
+printf '%s\\n' "$*" >> "$TP_TEST_PKG_LOG"
+if ((attempt <= TP_TEST_RETRY_FAILURES)); then exit 100; fi
+''')
+        environment = {**self.env, "TP_TEST_RETRY_COUNT": str(self.root / "attempts"),
+                       "TP_TEST_RETRY_DELAYS": str(self.root / "delays"),
+                       "TP_TEST_RETRY_FAILURES": str(failures)}
+        return self.run_process([BASH, self.checkout / "scripts/package-retry.sh",
+                                 "apt-get", "install", "-y", "python"], env=environment)
+
+    def test_package_retry_succeeds_without_repeating_successful_command(self):
+        self.assert_ok(self.run_package_retry(0))
+        self.assertEqual(self.pkg_log.read_text().splitlines(), ["install -y python"])
+        self.assertFalse((self.root / "delays").exists())
+
+    def test_package_retry_recovers_from_transient_mirror_errors(self):
+        self.assert_ok(self.run_package_retry(2))
+        self.assertEqual(self.pkg_log.read_text().splitlines(), ["install -y python"] * 3)
+        self.assertEqual((self.root / "delays").read_text().splitlines(), ["5", "10"])
+
+    def test_package_retry_stops_and_preserves_final_failure_status(self):
+        result = self.run_package_retry(9)
+        self.assertEqual(result.returncode, 100)
+        self.assertEqual(self.pkg_log.read_text().splitlines(), ["install -y python"] * 3)
+        self.assertEqual((self.root / "delays").read_text().splitlines(), ["5", "10"])
+
     def test_skip_packages_is_offline(self):
         self.assert_ok(self.install("--skip-packages"))
         self.assertFalse(self.pkg_log.exists())

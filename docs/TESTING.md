@@ -30,6 +30,8 @@ The host harness starts Termux, waits for bootstrap, transfers the tested source
 
 Read the actual [workflow run](https://github.com/alphatecau/Termux-Pro/actions) before claiming a configuration passed. A checked-in workflow is not evidence of a successful run.
 
+The disposable harness retries bootstrap package operations and Python installation at most three times, waiting five and ten seconds between attempts. This handles transient mirror-sync failures while retaining package signature and checksum checks. A persistent failure retains its final exit status and stops the job. The normal installer still propagates its package failures directly.
+
 ## Physical-device validation
 
 Use a fresh disposable Termux profile or a spare device with no existing Termux-Pro installation. The smoke script installs packages, creates a temporary local Git repository and removes this toolkit at the end. It refuses to replace an existing toolkit.

@@ -8,3 +8,5 @@ cloud/mnt/
 cloud/cache/
 ubuntu/*
 ssh/
+__pycache__/
+*.py[cod]

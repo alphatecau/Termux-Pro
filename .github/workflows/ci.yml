@@ -18,8 +18,33 @@ jobs:
           persist-credentials: false
       - name: Check Bash syntax
         run: |
-          for script in install.sh bin/*; do
+          for script in install.sh bin/* lib/*.sh scripts/*.sh; do
             bash -n "$script"
           done
+      - name: Analyse shell scripts
+        run: shellcheck -x install.sh bin/* lib/*.sh scripts/*.sh
       - name: Test installation and update behaviour offline
         run: python3 -m unittest discover -s tests -v
+
+  android-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test in Android Termux
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 28
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: bash scripts/run-android-emulator-smoke.sh

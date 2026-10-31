@@ -1,211 +1,122 @@
-Termux-Pro
+# Termux-Pro
 
-> Advanced Automation and Productivity Suite for Termux Users
-Built for maximum performance, security, and total control in Android’s UNIX environment.
+**A small, practical development toolkit for Termux on Android.**
 
+Install essential tools, check your environment, and keep this checkout up to date from one command.
 
----
+[Install](#install) · [Commands](#commands) · [Troubleshooting](#troubleshooting) · [Development](#development)
 
-About the Project
+## What works today
 
-Termux-Pro is a curated toolkit designed to extend Termux capabilities far beyond standard Linux-on-Android usage.
-It combines optimized shell scripts, secure environment configurations, and advanced automation routines for developers, penetration testers, system architects, and AI enthusiasts.
+| Capability | Behaviour |
+| --- | --- |
+| Installation | Refreshes the package index and installs Git, curl, wget and Neovim. |
+| Command access | Installs `tp`, `termux-pro` and three maintenance shortcuts into `$PREFIX/bin`. |
+| Health checks | Reports missing dependencies, missing commands and unavailable repository registration. |
+| Configuration | Displays installation paths without loading shell code or credentials. |
+| Updates | Fast-forwards a clean tracked Git checkout, then refreshes the installed commands. |
 
-With Termux-Pro, users gain an all-in-one environment that supports:
+This is an early-stage shell toolkit. AI integration, module management, automatic security hardening and Debian/Ubuntu compatibility are development ideas, not implemented features. Termux-Pro is an independent project.
 
-Development workflows
+## Install
 
-AI integrations
+Run these commands **inside Termux**, with a working package mirror and internet connection. Keep the checkout in Termux's private home directory.
 
-System automation
+```bash
+pkg update -y && pkg install -y git && \
+  git clone https://github.com/alphatecau/Termux-Pro.git "$HOME/Termux-Pro" && \
+  cd "$HOME/Termux-Pro" && bash install.sh
+```
 
-Security-hardening best practices
+If you already have the checkout, use:
 
-Modular extensibility
+```bash
+cd "$HOME/Termux-Pro" && git pull --ff-only && bash install.sh
+```
 
+Installation stops when a package operation fails. It never deletes an existing checkout or automatically runs a full `pkg upgrade`. It preserves shell startup files, Git credentials and unrelated commands. If a command name is already used by another tool, installation stops before changing packages or installed commands.
 
+The five installed scripts receive the actual `$PREFIX/bin/bash` interpreter path, avoiding reliance on `/usr/bin/env` being available on Android. Rerunning the installer replaces its managed commands without appending duplicate shell settings. Files are replaced individually; if installation is interrupted, rerun it to finish.
 
----
+Already have all dependencies installed? Skip package operations explicitly:
 
-Features
+```bash
+bash install.sh --skip-packages
+```
 
-One-Line Installation for rapid deployment
+The installer still checks for `pkg`, Termux Bash and the required tools. Use `bash install.sh --help` to see its options.
 
-Pre-Configured Security Hardening with ulimit, umask, and file permissions
+## Commands
 
-Optimized Aliases & Power Commands for navigation and Git operations
+```bash
+tp                  # Show help
+tp health           # Check this installation
+tp config           # Display paths
+tp update           # Update the checkout and refresh commands
+```
 
-Module Management for dynamic expansions and custom scripts
+| Shortcut | Equivalent |
+| --- | --- |
+| `termux-pro` | `tp` |
+| `tp-health` | `tp health` |
+| `tp-config` | `tp config` |
+| `tp-update` | `tp update` |
 
-Cross-Compatible with Debian/Ubuntu packages
+Failed health checks, failed updates and failed installation steps return a nonzero exit status. Unknown commands or invalid arguments return status `2`.
 
-AI-Ready Integration Hooks for GPT-powered utilities
+### Installation paths
 
+| Path | Purpose |
+| --- | --- |
+| `$HOME/Termux-Pro` | Default source checkout; other checkout paths are supported. |
+| `$PREFIX/bin` | Installed commands, normally already on Termux's `PATH`. |
+| `$HOME/.config/termux-pro/repository` | Checkout path stored as plain data, readable only by your user (`600`). |
 
+The checkout and home paths may contain spaces. `PREFIX` must be absolute and contain no whitespace because it is used in script interpreter lines. After moving a checkout, rerun `bash install.sh --skip-packages` from its new location to update its registration.
 
----
+### How updates behave
 
-Installation
+`tp update` requires a Git checkout on a branch with an upstream. It refuses to proceed when tracked files are modified or untracked files are present. Commit, move or stash those files first.
 
-Fully automated one-liner:
+It uses `git pull --ff-only`: divergent history requires your decision. A successful pull is followed by the installer with `--skip-packages`, so updating this toolkit does not upgrade every package on your phone. An installation failure after the pull leaves the updated source available; rerun the installer to finish.
 
-pkg update -y && pkg upgrade -y && pkg install -y git wget curl nano unzip proot && rm -rf "$HOME/Termux-Pro" && git clone https://github.com/alphatecau/Termux-Pro.git "$HOME/Termux-Pro" && echo -e "\n\n# Custom Aliases by Termux-Pro\nalias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'\nalias gs='git status'\nalias gp='git pull'\nalias gc='git commit'\n\n# Termux-Pro Settings\nexport TERMUX_AI_HOOK=1\nexport PATH=\"\$HOME/Termux-Pro/modules:\$PATH\"" >> "$HOME/.bashrc" && chmod 700 "$HOME/.bashrc" && echo -e "\nulimit -n 65535\numask 027" >> "$HOME/.profile" && echo "✅ Safe setup complete! Please configure Git and review 'install.sh' manually."
+Package upgrades remain a separate operation you control:
 
+```bash
+pkg update && pkg upgrade
+```
 
-Steps:
+## Troubleshooting
 
-1. Open Termux.
+| Symptom | Action |
+| --- | --- |
+| Package index or download fails | Check connectivity, run `termux-change-repo`, then retry installation. |
+| `tp` is not found | Run `bash install.sh` from the checkout and confirm `$PREFIX/bin` is in `PATH`. |
+| An unrelated command blocks installation | Inspect the named file; choose whether to rename that tool before retrying. The installer preserves it. |
+| A dependency is missing | Run `bash install.sh` to install the required packages. |
+| Registered checkout is unavailable | Run the installer from the checkout's current location. |
+| Update reports local changes | Review `git status`; commit, move or stash your work before retrying. |
+| Checkout has no upstream or is detached | Select the intended branch and configure its upstream before updating. |
 
+An older README supplied a one-liner that appended aliases, a module path, `ulimit` and `umask` settings to shell startup files. The new installer leaves existing customisations in place. Review old entries in `.bashrc` and `.profile` manually if they cause errors. Setting `TERMUX_AI_HOOK=1` alone does not implement AI functionality.
 
-2. Copy and paste the one-liner.
+Public cloning requires no GitHub token. This toolkit does not configure credential storage.
 
+Official references: [Termux package management](https://github.com/termux/termux-packages/wiki/Package-Management) and [Termux interpreter paths](https://github.com/termux/termux-fix-shebang).
 
-3. Press Enter.
+## Development
 
+The automated suite uses Python's standard library, temporary directories, a stub package manager and local Git remotes. It runs offline and never installs packages on the host.
 
-4. Once finished, aliases, AI hooks, module paths, and security configurations are applied automatically.
+```bash
+for script in install.sh bin/*; do bash -n "$script"; done
+python3 -m unittest discover -s tests -v
+```
 
+The suite covers package failures, command conflicts, repeated installs, spaces in paths, preserved user settings, health checks and successful or refused Git updates. GitHub Actions runs syntax checks and the same tests on pushes and pull requests. These checks verify shell behaviour; they do not substitute for testing real package downloads and execution on an Android device.
 
+Report a reproducible problem through [GitHub Issues](https://github.com/alphatecau/Termux-Pro/issues). Include the failing command, output and `termux-info`, with credentials removed.
 
+## Licence
 
----
-
-Aliases
-
-ll  # List all files with details
-la  # List all files except . and ..
-l   # List files in columns
-gs  # Git status
-gp  # Git pull
-gc  # Git commit
-
-
----
-
-AI Integration
-
-TERMUX_AI_HOOK=1 enables GPT-powered scripts.
-
-Modular AI scripts can be placed in $HOME/Termux-Pro/modules.
-
-
-
----
-
-Security Hardening
-
-ulimit -n 65535 → high file descriptor limit for resource-intensive tasks
-
-umask 027 → default secure permissions for new files
-
-.bashrc permissions set to 700 → prevent unauthorized edits
-
-
-
----
-
-Modular Architecture
-
-Place custom scripts or modules in ~/Termux-Pro/modules
-
-Automatically included in $PATH for instant execution
-
-
-
----
-
-Installed Utilities
-
-git → version control
-
-wget → file downloads
-
-curl → HTTP requests
-
-nano → text editing
-
-unzip → archive handling
-
-proot → containerized environments
-
-
-
----
-
-Usage
-
-Use aliases immediately:
-
-
-ll
-gs
-gp
-
-Add custom scripts to ~/Termux-Pro/modules and run them directly:
-
-
-my_custom_script.sh
-
-Update Termux-Pro:
-
-
-cd ~/Termux-Pro
-git pull
-bash install.sh
-
-
----
-
-Security Notes
-
-GitHub PAT is stored securely in ~/.git-credentials.
-
-Avoid sharing your Termux environment with untrusted users.
-
-Regularly update system and repository:
-
-
-pkg update -y && pkg upgrade -y
-
-
----
-
-Contribution
-
-1. Fork the repository
-
-
-2. Create a branch: git checkout -b feature/your-feature
-
-
-3. Make your changes
-
-
-4. Commit: git commit -m "Add your feature"
-
-
-5. Push: git push origin feature/your-feature
-
-
-6. Create a Pull Request
-
-
-
-
----
-
-License
-
-MIT License
-
-
----
-
-Support
-
-For support, open an issue:
-Termux-Pro Issues
-
-
----
-
+[MIT](LICENSE).

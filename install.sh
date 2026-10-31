@@ -35,6 +35,10 @@ if ((skip_packages == 0)); then
 fi
 for dependency in git curl wget nvim; do
     command -v "$dependency" >/dev/null 2>&1 || tp_fail "Missing dependency: $dependency"
+    if ! "$dependency" --version > "$TP_TRANSACTION/$dependency.version" 2>&1; then
+        cat "$TP_TRANSACTION/$dependency.version" >&2
+        tp_fail "Dependency cannot execute: $dependency. Run pkg update && pkg upgrade, then retry. If pkg is broken on apt-based Termux, use apt update && apt full-upgrade."
+    fi
 done
 TP_STAGE='staging commands and recovery backups'
 for index in "${!TP_COMMANDS[@]}"; do

@@ -26,7 +26,7 @@ The suite isolates its files in temporary directories and never invokes the host
 
 The `android-smoke` job runs for pull requests and manual workflow runs. It uses a pinned emulator action, an Android API 28 x86_64 system image, and the official architecture-specific Termux v0.118.3 APK. The APK is checked against its release's checksum file before installation. The job has read-only repository permissions.
 
-The host harness starts Termux, waits for bootstrap, transfers the tested source into its private home and invokes `scripts/android-smoke.sh`. This script installs actual dependencies, exercises all public commands, runs the Python suite under Termux, creates a local Git upstream, tests an update and uninstalls. `ANDROID_SMOKE_PASS` appears only after those steps succeed and the startup-file hashes match.
+The host harness starts Termux, waits for bootstrap, transfers the tested source into its private home and invokes `scripts/android-smoke.sh`. It first upgrades the disposable Termux bootstrap to avoid incompatible partial package updates. This script installs actual dependencies, exercises all public commands, runs the Python suite under Termux, creates a local Git upstream, tests an update and uninstalls. `ANDROID_SMOKE_PASS` appears only after those steps succeed and the startup-file hashes match.
 
 Read the actual [workflow run](https://github.com/alphatecau/Termux-Pro/actions) before claiming a configuration passed. A checked-in workflow is not evidence of a successful run.
 

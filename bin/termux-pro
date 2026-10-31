@@ -35,10 +35,10 @@ load_repository() {
 health() {
     local failures=0 name
     for name in bash git curl wget nvim; do
-        if command -v "$name" >/dev/null 2>&1; then
+        if command -v "$name" >/dev/null 2>&1 && "$name" --version >/dev/null 2>&1; then
             printf '[OK] dependency: %s\n' "$name"
         else
-            printf '[FAIL] missing dependency: %s\n' "$name"
+            printf '[FAIL] missing dependency: %s (or unable to execute; check package upgrades)\n' "$name"
             failures=$((failures + 1))
         fi
     done

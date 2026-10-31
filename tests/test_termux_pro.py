@@ -293,6 +293,29 @@ class TermuxProTests(unittest.TestCase):
         (self.user_home / ".config/termux-pro/receipt").unlink()
         self.assertNotEqual(self.run_process([self.commands / "tp-health"]).returncode, 0)
 
+    def test_broken_runtime_dependency_fails_before_first_install(self):
+        self.write_command("curl", 'printf "incompatible shared library\\n" >&2\nexit 127\n')
+        result = self.install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Dependency cannot execute: curl", result.stderr)
+        self.assertIn("pkg upgrade", result.stderr)
+        self.assertEqual(self.managed_snapshot(), {})
+        self.assertNotIn("Installation complete", result.stdout)
+
+    def test_broken_runtime_dependency_preserves_existing_installation(self):
+        self.install_ok()
+        before = self.managed_snapshot()
+        self.write_command("nvim", 'exit 127\n')
+        self.assertNotEqual(self.install("--skip-packages").returncode, 0)
+        self.assertEqual(self.managed_snapshot(), before)
+
+    def test_health_rejects_present_but_broken_runtime_dependency(self):
+        self.install_ok()
+        self.write_command("curl", 'exit 127\n')
+        result = self.run_process([self.commands / "tp-health"])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unable to execute", result.stdout)
+
     def managed_snapshot(self):
         paths = [self.commands / name for name in COMMANDS]
         paths += [self.prefix / "lib/termux-pro/lifecycle.sh",

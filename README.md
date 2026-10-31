@@ -12,7 +12,7 @@ Install essential tools, check your environment, and keep this checkout up to da
 | --- | --- |
 | Installation | Refreshes the package index and installs Git, curl, wget and Neovim. |
 | Command access | Installs `tp`, `termux-pro` and three maintenance shortcuts into `$PREFIX/bin`. |
-| Health checks | Reports missing dependencies, missing commands and unavailable repository registration. |
+| Health checks | Executes dependency version checks and checks installed commands, file integrity and repository registration. |
 | Configuration | Displays installation paths without loading user shell code or credentials. |
 | Updates | Fast-forwards a clean tracked Git checkout, then refreshes the installed commands. |
 | Recovery | Stages files and backups before replacement; rolls back failed toolkit changes and recovers interrupted publication. |
@@ -22,7 +22,13 @@ This is an early-stage shell toolkit. AI integration, module management, automat
 
 ## Install
 
-Run these commands **inside Termux**, with a working package mirror and internet connection. Keep the checkout in Termux's private home directory.
+Use an up-to-date Termux environment, a working package mirror and an internet connection. Keep the checkout in Termux's private home directory. Review package upgrades first; older bootstrap libraries can be incompatible with newly installed tools:
+
+```bash
+pkg update && pkg upgrade
+```
+
+Then install the toolkit:
 
 ```bash
 pkg update -y && pkg install -y git && \
@@ -46,7 +52,7 @@ Already have all dependencies installed? Skip package operations explicitly:
 bash install.sh --skip-packages
 ```
 
-The installer still checks for `pkg`, Termux Bash and the required tools. Use `bash install.sh --help` to see its options.
+The installer still checks for `pkg`, Termux Bash and successful execution of the required tools. A broken runtime fails installation before toolkit files are published; it reports the tool error and directs you to review package upgrades. Use `bash install.sh --help` to see its options.
 
 ## Commands
 
@@ -119,6 +125,7 @@ This removes unchanged toolkit commands, its library and its installation record
 | `tp` is not found | Run `bash install.sh` from the checkout and confirm `$PREFIX/bin` is in `PATH`. |
 | An unrelated command blocks installation | Inspect the named file; choose whether to rename that tool before retrying. The installer preserves it. |
 | A dependency is missing | Run `bash install.sh` to install the required packages. |
+| A tool cannot load a shared library | Review `pkg update && pkg upgrade`, then rerun installation. If `pkg` is itself broken on an apt-based installation, use `apt update && apt full-upgrade`. A command being present does not establish that it can execute. |
 | Registered checkout is unavailable | Run the installer from the checkout's current location. |
 | A managed file has local changes | Move your customised copy aside before reinstalling or uninstalling; it is preserved on refusal. |
 | A rollback cannot finish | Fix storage or permissions and rerun the installer; retain the transaction directory and backups. |
@@ -129,7 +136,7 @@ An older README supplied a one-liner that appended aliases, a module path, `ulim
 
 Public cloning requires no GitHub token. This toolkit does not configure credential storage.
 
-Official references: [Termux package management](https://github.com/termux/termux-packages/wiki/Package-Management) and [Termux interpreter paths](https://github.com/termux/termux-fix-shebang).
+Official references: [Termux package management](https://github.com/termux/termux-packages/wiki/Package-Management) [Termux interpreter paths](https://github.com/termux/termux-fix-shebang), and [package/library compatibility](https://github.com/termux/termux-packages/wiki/Termux-execution-environment#package-dependencies-are-outdated).
 
 ## Development
 

@@ -7,6 +7,9 @@ set -Eeuo pipefail
 repository=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 cd -- "$repository"
 printf 'Android API: %s\nABI: %s\n' "$(/system/bin/getprop ro.build.version.sdk)" "$(/system/bin/getprop ro.product.cpu.abi)"
+# Termux is a rolling release: upgrade the disposable bootstrap before selecting packages.
+pkg update -y
+pkg upgrade -y
 settings_before=''
 for name in .bashrc .profile .git-credentials; do
     if [[ -f $HOME/$name ]]; then settings_before+="$(sha256sum "$HOME/$name")"; fi

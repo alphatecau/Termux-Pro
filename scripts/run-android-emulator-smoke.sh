@@ -30,5 +30,5 @@ for ((attempt=0; attempt<90; attempt++)); do
 done
 ((ready)) || { printf 'Termux bootstrap did not become ready.\n' >&2; exit 1; }
 android_run 'mkdir -p files/home/Termux-Pro'
-tar --exclude=.git --exclude=__pycache__ -cf - . | android_run 'cd files/home/Termux-Pro && /system/bin/toybox tar -xf -'
+tar --exclude=.git --exclude=__pycache__ -cf - . | android_run 'cd files/home/Termux-Pro && /system/bin/toybox tar --no-same-owner -xf -'
 android_run 'exec /system/bin/env HOME=/data/data/com.termux/files/home PREFIX=/data/data/com.termux/files/usr PATH=/data/data/com.termux/files/usr/bin:/system/bin TMPDIR=/data/data/com.termux/files/usr/tmp LD_PRELOAD=/data/data/com.termux/files/usr/lib/libtermux-exec.so TERM=xterm-256color TERMUX_VERSION=0.118.3 TERMUX_APK_RELEASE=GITHUB TERMUX_PRO_DISPOSABLE_TEST=1 /data/data/com.termux/files/usr/bin/bash /data/data/com.termux/files/home/Termux-Pro/scripts/android-smoke.sh'

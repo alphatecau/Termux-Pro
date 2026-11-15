@@ -98,6 +98,10 @@ Package upgrades remain a separate operation you control:
 pkg update && pkg upgrade
 ```
 
+## Optional readiness audit
+
+Run `bash scripts/readiness-audit.sh` from the checkout to inspect basic Android development readiness without installing packages or changing settings. Missing optional tools produce warnings; missing essential Termux environment requirements produce a nonzero exit status. See [Readiness audit](docs/READINESS.md) for limitations and test coverage.
+
 ## Recovery
 
 The installer stages complete replacement files and recovery backups before publishing anything. Each file replacement uses a rename on the same filesystem. Install and uninstall operations share a lock, so two operations cannot modify the installation concurrently.
